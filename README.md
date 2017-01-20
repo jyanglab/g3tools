@@ -17,7 +17,7 @@ library(g3tools)
 List all the functions in the package and find help.
 
 ```R
-ls(getNamespace("g3tools"), all.names=TRUE)
+ls(getNamespace("g3tools"), all.names=FALSE)
 ```
 
 ## List of Functions
