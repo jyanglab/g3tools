@@ -20,6 +20,17 @@ List all the functions in the package and find help.
 ls(getNamespace("g3tools"), all.names=TRUE)
 ```
 
+## List of Functions
+
+### Simulations
+1. `sim_qtl_pheno`: simulate phenotype for given number of QTLs.
+
+### Quantative Genetics
+1. `get_BLUP`: Estimate best linear unbiased predictor (BLUP) of the phenotypic values. 
+2. `get_H2`: get broad sense heritability from BLUP model.
+
+
+
 ## Documentation
 
 Stay tuned. It is under development!

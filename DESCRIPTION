@@ -1,7 +1,7 @@
 Package: g3tools
 Type: Package
 Title: For Genomics, quantGen, and popGen studies, especially for crop species.
-Version: 0.1.0
+Version: 0.1.1
 Date: 2017-01-19
 Authors@R: person("Jinliang", "Yang", email = "yangjl0930@gmail.com", role = c("aut", "cre"))
 Description: More about what it does (maybe more than one line)
@@ -9,5 +9,6 @@ License: AGLv3
 LazyData: TRUE
 Imports:
     Rcpp (>= 0.12.2)
-LinkingTo:
-    Rcpp
+    lme4
+LinkingTo: Rcpp
+RoxygenNote: 5.0.1
