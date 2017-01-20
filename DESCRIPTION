@@ -9,6 +9,6 @@ License: AGLv3
 LazyData: TRUE
 Imports:
     Rcpp (>= 0.12.2)
-    lme4
+    lme4 (>= 1.1-12)
 LinkingTo: Rcpp
 RoxygenNote: 5.0.1
