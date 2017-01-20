@@ -8,7 +8,6 @@ Description: More about what it does (maybe more than one line)
 License: AGLv3
 LazyData: TRUE
 Imports:
-    Rcpp (>= 0.12.2)
     lme4 (>= 1.1)
 LinkingTo: Rcpp
 RoxygenNote: 5.0.1
