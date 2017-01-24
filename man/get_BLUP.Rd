@@ -2,11 +2,11 @@
 % Please edit documentation in R/fitlmm.R
 \name{get_BLUP}
 \alias{get_BLUP}
-\title{\code{Fit MLM to get the BLUP}}
+\title{\code{Fit MLM to get the BLUP values}}
 \usage{
 get_BLUP(data = df, model = Brix ~ (1 | Line) + (1 | Loc) + (1 | Year) + (1
   | Line:Loc) + (1 | Line:Year), which.factor = "Line",
-  outfile = "blup.csv")
+  outfile = "data/blup.csv")
 }
 \arguments{
 \item{data}{Phenotypic data [data.frame], see example: "data/pheno.csv".}
@@ -27,7 +27,7 @@ Require package "lme4".
 \examples{
 pheno <-  read.csv("data/pheno.csv", header=T)
 fit <- get_BLUP(data = df, model = Brix ~ (1|Line) + (1|Loc) + (1|Year) + (1|Line:Loc) + (1|Line:Year),
-                 which.factor = "Line", outfile="blup.csv"))
+                 which.factor = "Line", outfile="data/blup.csv")
 
 }
 
