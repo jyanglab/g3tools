@@ -27,7 +27,7 @@ get_BLUP <- function(data = df, model = Brix ~ (1|Line) + (1|Loc) + (1|Year) + (
     #str(brixblup)
     # extract blup for line
     genoblup <- as.data.frame(myblup[which.factor])
-    names(genoblup) <- "value"
+    names(genoblup)[1] <- "value"
 
     feff <- fixef(fit)
     genoblup$value <- genoblup$value+feff
