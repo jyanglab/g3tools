@@ -20,7 +20,7 @@
 get_BLUP <- function(data = df, model = Brix ~ (1|Line) + (1|Loc) + (1|Year) + (1|Line:Loc) + (1|Line:Year),
                      which.factor = "Line", outfile="data/blup.csv") {
 
-    fit <- lmer(model, data=pheno)
+    fit <- lmer(model, data=data)
 
     myblup <-  ranef(fit)
     # look at output structure
