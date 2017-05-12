@@ -22,8 +22,9 @@ ls(getNamespace("g3tools"), all.names=FALSE)
 
 ## List of Functions
 
-### Simulations
-1. `sim_qtl_pheno`: simulate phenotype for given number of QTLs.
+### Phenotype Simulations from genotypic data
+1. `simcrop`: this function can simulate phenotypes with user specified distribution. (normal, gamma, or uniform).
+2. `sim_qtl_pheno`: simulate phenotype for given number of QTLs.
 
 ### Quantative Genetics
 1. `get_BLUP`: Estimate best linear unbiased predictor (BLUP) of the phenotypic values. 

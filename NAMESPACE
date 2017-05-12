@@ -3,3 +3,4 @@
 export(get_BLUP)
 export(get_H2)
 export(sim_qtl_pheno)
+export(simcrop)
