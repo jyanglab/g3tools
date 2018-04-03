@@ -31,9 +31,10 @@
 #' @examples
 #'
 #' @export
-simcrop <- function(genofile = "genotypes.dat",
-                    train_pheno = "trainPhenotypes.dat",
+BayesCpi <- function(genofile = "data/bayes_geno.txt",
+                    train_pheno = "data/bayes_train_pheno.txt",
                     test_pheno = NULL,
+                    trait="TA",
 
                     seed = 12347,
                     chainLength = 11000,
@@ -50,33 +51,28 @@ simcrop <- function(genofile = "genotypes.dat",
     # start from here
     library(data.table)
     set.seed(seed)
+    pheno <- fread(train_pheno, header=TRUE)
+    gplist <- read_geno_pheno(genofile, train_pheno, test_pheno = "data/bayes_test_pheno.txt")
 
-    geno <- fread(genofile, header=TRUE, data.table=FALSE)
-    tp   <- fread(train_pheno, header=TRUE, data.table=FALSE)
-    gtp  <- merge(tp, geno, by="uid") # Merge genotype and phenotype by their uid
+    gp <- gplist[[1]]
+    UID = unname(as.matrix(gp[,1]))                   # First field is unique identifier
+    y <- gp[, trait]                                  # trait values, trait of interest
+    Z <- gp[, (ncol(pheno)+1): ncol(gp)]              # genotypes 0, 1, 2
+    Z <- unname(as.matrix(Z))
+    #Z        = unname(as.matrix((Z + 10)/10));       # Recode genotypes to 0, 1, 2 (number of B alleles)
+    markerID = colnames(gp)[3:ncol(gp)]               # Remember the marker locus identifiers
+    remove(gp)
 
-    if(!is.null(test_pheno)){
-        testp    = fread(test_pheno, header=TRUE, data.table=FALSE)
-        commonTestData       = merge(testp,  geno, by="uid")
-        rm(testp)
+
+    if(length(gplist) > 1){
+        commonTestData <- gplist[[2]]
+        testID = unname(as.matrix(commonTestData[,1]))                                 # First field is unique identifier
+        yTest        = commonTestData[, trait]                                         # Second field is trait values
+        ZTest        = commonTestData[, (ncol(pheno)+1) : ncol(commonTestData)]        # Remaining fields are GenSel-coded genotypes
+        ZTest        = unname(as.matrix((ZTest)));                                     # Recode genotypes to 0, 1, 2 (number of B alleles)
+        remove(commonTestData)
     }
 
-    # Free up space:
-    rm(list=c("geno", "tp"))
-
-
-    animalID = unname(as.matrix(commonTrainingData[,1]))                # First field is animal identifier
-    y        = commonTrainingData[, 2]                                  # Second field is trait values
-    Z        = commonTrainingData[, 3: ncol(commonTrainingData)]        # Remaining fields are GenSel-coded genotypes
-    Z        = unname(as.matrix((Z + 10)/10));                          # Recode genotypes to 0, 1, 2 (number of B alleles)
-    markerID = colnames(commonTrainingData)[3:ncol(commonTrainingData)] # Remember the marker locus identifiers
-    remove(commonTrainingData)
-
-    testID = unname(as.matrix(commonTestData[,1]))                  # First field is animal identifier
-    yTest        = commonTestData[, 2]                              # Second field is trait values
-    ZTest        = commonTestData[, 3: ncol(commonTestData)]        # Remaining fields are GenSel-coded genotypes
-    ZTest        = unname(as.matrix((ZTest + 10)/10));              # Recode genotypes to 0, 1, 2 (number of B alleles)
-    remove(commonTestData)
 
     nmarkers = ncol(Z)                                              # number of markers
     nrecords = nrow(Z)                                              # number of animals
@@ -151,4 +147,35 @@ simcrop <- function(genofile = "genotypes.dat",
 
     proc.time()-ptime
 
+}
+
+#' @rdname BayesCpi
+read_geno_pheno <- function(genofile = "data/bayes_geno.txt",
+                            train_pheno = "data/bayes_train_pheno.txt",
+                            test_pheno = "data/bayes_test_pheno.txt"){
+    # start from here
+    #library(data.table)
+    #set.seed(seed)
+
+    geno <- fread(genofile, header=TRUE, data.table=FALSE)
+    tp   <- fread(train_pheno, header=TRUE, data.table=FALSE)
+    # training data
+    gp  <- merge(tp, geno, by="uid") # Merge genotype and phenotype by their uid
+    message(sprintf("#> [read_geno_pheno] TRAINING DATA: loading [%s] individuals and [%s] SNPs", nrow(gp), ncol(gp)-1))
+
+    if(!is.null(test_pheno)){
+        testp <- fread(test_pheno, header=TRUE, data.table=FALSE)
+        # test data
+        td <- merge(testp,  geno, by="uid")
+        message(sprintf("#> [read_geno_pheno] TEST DATA: loading [%s] individuals and [%s] SNPs", nrow(td), ncol(td)-1))
+        rm(testp)
+    }
+
+    # Free up space:
+    rm(list=c("geno", "tp"))
+    if(!is.null(test_pheno)){
+        return(list(gp, td))
+    }else{
+        return(list(gp))
+    }
 }
