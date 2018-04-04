@@ -27,7 +27,7 @@
 #'
 #'
 #'
-#' @return return A list of many values or a script to gcta command.
+#' @return return GWAS results.
 #'
 #' @examples
 #'
@@ -37,7 +37,6 @@ BayesCpi <- function(genofile = "data/bayes_geno.txt",
                     test_pheno = NULL,
                     mergeby = "uid",
                     trait="TA",
-
                     seed = 12347,
                     chainLength = 1000,
                     probFixed = 0.999,

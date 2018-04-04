@@ -47,7 +47,7 @@ For GS. [data.frame, ["uid", "pheno", ...], =NULL].}
 \item{outputFrequency}{Frequency for reporting performance and for computing genetic variances. [integer, =100]}
 }
 \value{
-return A list of many values or a script to gcta command.
+return GWAS results.
 }
 \description{
 R codes based on Rohan Fernando and Dorian Garrick, Bayesian Methods Applied to GWAS.
