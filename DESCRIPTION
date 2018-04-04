@@ -7,7 +7,5 @@ Authors@R: person("Jinliang", "Yang", email = "yangjl0930@gmail.com", role = c("
 Description: More about what it does (maybe more than one line)
 License: AGLv3
 LazyData: TRUE
-Imports:
-    lme4 (>= 1.1)
 LinkingTo: Rcpp
-RoxygenNote: 5.0.1
+RoxygenNote: 6.0.1

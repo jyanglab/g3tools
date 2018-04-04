@@ -5,7 +5,7 @@
 #'
 #' @param geno genotype data, col1=genoid, col2 and after=snpid, coding: 0,1,2 (no missing data allowed) [data.frame].
 #' @param h2 Broad sense heritability of the trait [numeric(0-1)].
-#' @param alpha
+#' @param alpha Alpha.
 #' @param nqtl number of QTL [interger].
 #' @param distribution [character=norm]
 #'

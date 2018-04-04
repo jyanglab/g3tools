@@ -41,4 +41,3 @@ gcta64  --bfile test  --simu-qt  --simu-causal-loci causal.snplist  --simu-hsq 0
 --simu-rep 3  --keep test.indi.list --out test
 
 }
-

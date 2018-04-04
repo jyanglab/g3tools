@@ -11,6 +11,8 @@ sim_qtl_pheno(geno, h2, alpha, nqtl, distribution = "norm")
 
 \item{h2}{Broad sense heritability of the trait [numeric(0-1)].}
 
+\item{alpha}{Alpha.}
+
 \item{nqtl}{number of QTL [interger].}
 
 \item{distribution}{[character=norm]}
@@ -27,4 +29,3 @@ pheno <- sim_qtl_pheno(geno, h2=0.7, alpha=0.5, nqtl=10, distribution="norm")
 y <- pheno[['y']]
 
 }
-

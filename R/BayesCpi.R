@@ -5,11 +5,12 @@
 #' The code is not efficient for large scale genomic data.
 #'
 #'
-#' @param genofile A data.frame contains snpid information, must contain col: uid. [data.frame, ["uid", ...]].
+#' @param genofile A data.frame contains snpid information, must contain col: mergeby. [data.frame, ["uid", ...]].
 #' @param train_pheno A training data.frame contains columns of phenotypic traits and fixed effects.
 #'                       Can be used for GWAS. [data.frame, ["uid", "pheno", ...]].
 #' @param test_pheno A testing data.frame contains columns of phenotypic traits and fixed effects.
 #'                      For GS. [data.frame, ["uid", "pheno", ...], =NULL].
+#' @param mergeby The column id to merge the pheno and geno data. [chr, ="uid"]
 #'
 #' @param seed Seed for the random number generator. [integer, =12347].
 #' @param chainLength Number of iterations for the MCMC chain. [interger, =11000].
@@ -34,11 +35,12 @@
 BayesCpi <- function(genofile = "data/bayes_geno.txt",
                     train_pheno = "data/bayes_train_pheno.txt",
                     test_pheno = NULL,
+                    mergeby = "uid",
                     trait="TA",
 
                     seed = 12347,
                     chainLength = 1000,
-                    probFixed = 0.99,
+                    probFixed = 0.999,
                     estimatePi = "yes",
                     dfEffectVar = 4,
                     nuRes = 4,
@@ -52,7 +54,7 @@ BayesCpi <- function(genofile = "data/bayes_geno.txt",
     library(data.table)
     set.seed(seed)
     pheno <- fread(train_pheno, header=TRUE)
-    gplist <- read_geno_pheno(genofile, train_pheno, test_pheno = "data/bayes_test_pheno.txt")
+    gplist <- read_geno_pheno(genofile, train_pheno, test_pheno, mergeby)
 
     gp <- gplist[[1]]
     UID = unname(as.matrix(gp[,1]))                   # First field is unique identifier
@@ -60,7 +62,7 @@ BayesCpi <- function(genofile = "data/bayes_geno.txt",
     Z <- gp[, (ncol(pheno)+1): ncol(gp)]              # genotypes 0, 1, 2
     Z <- unname(as.matrix(Z))
     #Z        = unname(as.matrix((Z + 10)/10));       # Recode genotypes to 0, 1, 2 (number of B alleles)
-    markerID = colnames(gp)[3:ncol(gp)]               # Remember the marker locus identifiers
+    markerID = colnames(gp)[(ncol(pheno)+1):ncol(gp)]               # Remember the marker locus identifiers
     remove(gp)
 
 
@@ -200,6 +202,8 @@ BayesCpi <- function(genofile = "data/bayes_geno.txt",
         }
     }
 
+    ### works fine above!
+
     meanMu = meanMu/chainLength
     meanAlpha = meanAlpha/chainLength
     modelFreq = modelFreq/chainLength
@@ -221,7 +225,8 @@ BayesCpi <- function(genofile = "data/bayes_geno.txt",
 #' @rdname BayesCpi
 read_geno_pheno <- function(genofile = "data/bayes_geno.txt",
                             train_pheno = "data/bayes_train_pheno.txt",
-                            test_pheno = "data/bayes_test_pheno.txt"){
+                            test_pheno=NULL,
+                            mergeby){
     # start from here
     #library(data.table)
     #set.seed(seed)
@@ -229,14 +234,14 @@ read_geno_pheno <- function(genofile = "data/bayes_geno.txt",
     geno <- fread(genofile, header=TRUE, data.table=FALSE)
     tp   <- fread(train_pheno, header=TRUE, data.table=FALSE)
     # training data
-    gp  <- merge(tp, geno, by="uid") # Merge genotype and phenotype by their uid
-    message(sprintf("#> [read_geno_pheno] TRAINING DATA: loading [%s] individuals and [%s] SNPs", nrow(gp), ncol(gp)-1))
+    gp  <- merge(tp, geno, by=mergeby) # Merge genotype and phenotype by their uid
+    message(sprintf("#> [read_geno_pheno] TRAINING DATA: loading [%s] individuals and [%s] SNPs", nrow(gp), ncol(gp)-ncol(tp)))
 
     if(!is.null(test_pheno)){
         testp <- fread(test_pheno, header=TRUE, data.table=FALSE)
         # test data
-        td <- merge(testp,  geno, by="uid")
-        message(sprintf("#> [read_geno_pheno] TEST DATA: loading [%s] individuals and [%s] SNPs", nrow(td), ncol(td)-1))
+        td <- merge(testp,  geno, by=mergeby)
+        message(sprintf("#> [read_geno_pheno] TEST DATA: loading [%s] individuals and [%s] SNPs", nrow(td), ncol(td)-ncol(td)))
         rm(testp)
     }
 

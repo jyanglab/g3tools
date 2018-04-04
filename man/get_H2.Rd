@@ -30,4 +30,3 @@ get_H2(fit, numerator="Line",
        df=c(1, 2, 2, 4)))
 
 }
-

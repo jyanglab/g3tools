@@ -30,4 +30,3 @@ fit <- get_BLUP(data = df, model = Brix ~ (1|Line) + (1|Loc) + (1|Year) + (1|Lin
                  which.factor = "Line", outfile="data/blup.csv")
 
 }
-
