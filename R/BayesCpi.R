@@ -37,12 +37,12 @@ BayesCpi <- function(genofile = "data/bayes_geno.txt",
                     trait="TA",
 
                     seed = 12347,
-                    chainLength = 11000,
+                    chainLength = 1000,
                     probFixed = 0.99,
                     estimatePi = "yes",
                     dfEffectVar = 4,
                     nuRes = 4,
-                    varGenotypic = 1 ,
+                    varGenotypic = 1,
                     varResidual = 1,
                     windowSize = 10,
                     outputFrequency = 100
@@ -83,10 +83,12 @@ BayesCpi <- function(genofile = "data/bayes_geno.txt",
     p = markerMeans/2.0                                   # compute frequency B allele for each marker
     mean2pq = mean(2*p*(1-p))                             # compute mean genotype variance
 
-    varEffects  = varGenotypic/(nmarkers*mean2pq)         # variance of locus effects is computed from genetic variance
-    #(e.g. Fernando et al., Acta Agriculturae Scand Section A, 2007; 57: 192-195)
+    varEffects  = varGenotypic/(nmarkers*(1-probFixed)*mean2pq)         # variance of locus effects is computed from genetic variance
+                                                          #(e.g. Fernando et al., Acta Agriculturae Scand Section A, 2007; 57: 192-195)
     scaleVar    = varEffects*(dfEffectVar-2)/dfEffectVar; # scale factor for locus effects
     scaleRes    = varResidual*(nuRes-2)/nuRes             # scale factor for residual variance
+    logPi       = log(probFixed)                          # compute these once since probFixed does not change!
+    logPiComp   = log(1-probFixed)
 
     numberWindows = nmarkers/windowSize                   # number of genomic windows
     numberSamples = chainLength/outputFrequency           # number of samples of genetic variances
@@ -95,21 +97,22 @@ BayesCpi <- function(genofile = "data/bayes_geno.txt",
     alpha           = array(0.0, nmarkers) # reserve a vector to store sampled locus effects
     meanAlpha       = array(0.0, nmarkers) # reserve a vector to accumulate the posterior mean of locus effects
     modelFreq       = array(0.0, nmarkers) # reserve a vector to store model frequency
-    mu              = mean(y)              # starting value for the location parameter
+    mu              = mean(y,na.rm=TRUE)   # starting value for the location parameter
     meanMu          = 0                    # reserve a scalar to accumulate the posterior mean
     geneticVar      = array(0,numberSamples) # reserve a vector to store sampled genetic variances
+
     # reserve a matrix to store sampled proportion proportion of variance due to window
     windowVarProp   = matrix(0,nrow=numberSamples,ncol=numberWindows)
     sampleCount     = 0                    # initialize counter for number of samples of genetic variances
-
-
+    piMean          = 0                    # initialize scalar to accumulat the sum of Pi
+    delta           = array(1, nmarkers)   # vector to indicate locus effect in model or not
 
     # adjust y for the fixed effect (ie location parameter)
+    y[is.na(y)] <- mu                      # impute missing pheno to mean
     ycorr = y - mu
 
-
-    ZPZ=t(Z)%*%Z
-    zpz=diag(ZPZ)
+    #ZPZ=t(Z)%*%Z
+    #zpz=diag(ZPZ)
 
     ptime=proc.time()
     # mcmc sampling
@@ -127,22 +130,88 @@ BayesCpi <- function(genofile = "data/bayes_geno.txt",
         ycorr = ycorr - mu                    # Adjust y for the new sample of mu
         meanMu = meanMu + mu                  # Accumulate the sum to compute posterior mean
 
+        # sample delta and then the effect for each locus
+        nLoci = 0                             # Counter for number of loci fitted this iteraction
+
         # sample effect for each locus
         for (locus in 1:nmarkers){
+            ycorr = ycorr + Z[,locus]*alpha[locus]                    #phenotypes are adjusted for all but this locus
+            rhs   = t(Z[,locus]) %*% ycorr                            #rhs of MME adjusted for all but this locus
+            zpz   = t(Z[,locus]) %*% Z[,locus]                        #OLS component of MME for this locus
+            v0    = zpz*vare                                          #Var(rhs|delta=0)
+            v1    = zpz^2*varEffects + zpz*vare                       #Var(rhs|delta=1)
 
-            rhs=t(Z[,locus])%*%ycorr +zpz[locus]*alpha[locus]
-            mmeLhs = zpz[locus] + vare/varEffects                        # Form the coefficient matrix of MME
-            invLhs = 1.0/mmeLhs                                   # Invert the coefficient matrix
-            mean = invLhs*rhs                                     # Solve the MME for locus effect
-            oldAlpha=alpha[locus]
-            alpha[locus]= rnorm(1,mean,sqrt(invLhs*vare))         # Sample the locus effect from data
-            ycorr = ycorr + Z[,locus]*(oldAlpha-alpha[locus]);               # Adjust the data for this locus effect
-            meanAlpha[locus] = meanAlpha[locus] + alpha[locus];   # Accumulate the sum for posterior mean
+            logDelta0 = -0.5*(log(v0) + rhs^2/v0) + logPi             #This locus not fitted
+            logDelta1 = -0.5*(log(v1) + rhs^2/v1) + logPiComp         #this locus fitted
+            probDelta1 = 1.0/(1.0 + exp(logDelta0-logDelta1))         #near 0 if locus poor, 1 if locus very good
+            u = runif(1)                                              #sample from uniform distribution
+            if(is.na(probDelta1)){
+                alpha[locus] = 0                                      #Sample the locus effect from prior
+                delta[locus] = 0
+            }else{
+                if(u < probDelta1){                                       #Accept the sample with Pr(delta=1|ELSE)
+                    nLoci  = nLoci + 1                                    #Increment a counter for loci fitted this iteration
+                    mmeLhs = zpz + vare/varEffects                        #Form the coefficient matrix of MME
+                    invLhs = 1.0/mmeLhs                                   #Invert the coefficient matrix
+                    mean   = invLhs*rhs                                   #Solve the MME for locus effect
+                    alpha[locus] = rnorm(1, mean, sqrt(invLhs*vare))      #Sample the locus effect from data
+                    ycorr = ycorr - Z[, locus]*alpha[locus]               #Adjust the data for this locus effect
+                    meanAlpha[locus] = meanAlpha[locus] + alpha[locus]    #Accumulate the sum for posterior mean
+                    modelFreq[locus] = modelFreq[locus] + 1               #Accumulate counter for acceptance of this locus
+                    delta[locus] = 1                                      #record that this locus was fitted
+                }else{
+                    alpha[locus] = 0                                      #Sample the locus effect from prior
+                    delta[locus] = 0                                      #record thtat this locus not fitted in the model
+                }
+            }
+
         }
 
         # sample the common locus effect variance
-        varEffects = ( scaleVar*dfEffectVar + sum(alpha^2) )/rchisq(1,dfEffectVar+nmarkers)
+        varEffects = ( scaleVar*dfEffectVar + sum(alpha^2) )/rchisq(1, dfEffectVar+nLoci)
+        if(estimatePi == "yes"){
+            # sample Pi
+            aa = nmarkers - nLoci + 1
+            bb = nLoci + 1
+            pi = rbeta(1, aa, bb)                                     #Sample pi from full-conditional
+            piMean = piMean + pi                                      #Accumulative sum for posterior mean of pi
+            logPi  = log(pi)
+            logPiComp = log(1-pi)
+        }
+        if(iter %% outputFrequency == 0){
+            message(sprintf("#> [bayesCpi]: iteration = %5d number of loci in model = %5d ...", iter, nLoci))
+            aHatTest  = ZTest %*% meanAlpha/iter                      #compute genomic breeding values in test data
+            corr      = cor(aHatTest, yTest)                          #correlation of yhat and y obs
+            regr      = corr*sqrt(var(yTest)/var(aHatTest))           #regress yTest on aHatTest
+            RSquared  = corr*corr
+            message(sprintf("#> [bayesCpi]: Corr=%8.5f, Regr=%8.5f, R2=%8.5f", corr, regr, RSquared))
 
+            sampleCount = sampleCount + 1
+            geneticVar[sampleCount] = var(Z%*%alpha)                  #variance of genetic values
+            wEnd = 0
+            for(window in 1:numberWindows){
+                wStart = wEnd + 1                                     #start of current window
+                wEnd   = wEnd + windowSize                            #end of current window
+                if(wEnd > nmarkers){
+                    wEnd = nmarkers                                   #last window may be smaller than windowSize
+                }
+                windowVarProp[sampleCount, window] = var(Z[,wStart:wEnd]%*%alpha[wStart*wEnd])/geneticVar[sampleCount]
+            }
+        }
+    }
+
+    meanMu = meanMu/chainLength
+    meanAlpha = meanAlpha/chainLength
+    modelFreq = modelFreq/chainLength
+    piMean    = piMean/chainLength
+
+    nTestUID  = nrow(ZTest)
+    for(uid in 1:nTestUID){
+        cat(sprintf("%15s\t%15.7f\n"), testID[uid], aHatTest[uid])
+    }
+
+    for(locus in 1:nmarkers){
+        cat(sprintf("%15s %15.7f %10.7f \n", markerID[locus], meanAlpha[locus], modelFreq[locus]))
     }
 
     proc.time()-ptime
