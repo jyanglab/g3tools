@@ -39,6 +39,7 @@ BayesCpi <- function(genofile = "data/bayes_geno.txt",
                     trait="TA",
                     seed = 12347,
                     chainLength = 1000,
+                    burnin=100,
                     probFixed = 0.999,
                     estimatePi = "yes",
                     dfEffectVar = 4,
@@ -181,11 +182,14 @@ BayesCpi <- function(genofile = "data/bayes_geno.txt",
         }
         if(iter %% outputFrequency == 0){
             message(sprintf("#> [bayesCpi]: iteration = %5d number of loci in model = %5d ...", iter, nLoci))
-            aHatTest  = ZTest %*% meanAlpha/iter                      #compute genomic breeding values in test data
-            corr      = cor(aHatTest, yTest)                          #correlation of yhat and y obs
-            regr      = corr*sqrt(var(yTest)/var(aHatTest))           #regress yTest on aHatTest
-            RSquared  = corr*corr
-            message(sprintf("#> [bayesCpi]: Corr=%8.5f, Regr=%8.5f, R2=%8.5f", corr, regr, RSquared))
+
+            if(!is.null(test_pheno)){
+                aHatTest  = ZTest %*% meanAlpha/iter                      #compute genomic breeding values in test data
+                corr      = cor(aHatTest, yTest)                          #correlation of yhat and y obs
+                regr      = corr*sqrt(var(yTest)/var(aHatTest))           #regress yTest on aHatTest
+                RSquared  = corr*corr
+                message(sprintf("#> [bayesCpi]: Corr=%8.5f, Regr=%8.5f, R2=%8.5f", corr, regr, RSquared))
+            }
 
             sampleCount = sampleCount + 1
             geneticVar[sampleCount] = var(Z%*%alpha)                  #variance of genetic values
@@ -196,7 +200,7 @@ BayesCpi <- function(genofile = "data/bayes_geno.txt",
                 if(wEnd > nmarkers){
                     wEnd = nmarkers                                   #last window may be smaller than windowSize
                 }
-                windowVarProp[sampleCount, window] = var(Z[,wStart:wEnd]%*%alpha[wStart*wEnd])/geneticVar[sampleCount]
+                windowVarProp[sampleCount, window] = var(Z[,wStart:wEnd]%*%alpha[wStart:wEnd])/geneticVar[sampleCount]
             }
         }
     }
